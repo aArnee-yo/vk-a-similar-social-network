@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 @router.post("/auth")
-async def register(user : SUserAuth):
+async def register(user : SUserAuth) -> bool:
     existing_user = await UserDAO.find_one_or_none(email=user.email)
     if existing_user:
         raise 
@@ -29,22 +29,38 @@ async def register(user : SUserAuth):
 @router.post("/login")
 async def login(response : Response, user_data : SUserAuth):
     user = await authenticate_user(user_data.email, user_data.password)
+    
     if not user:
         raise
-    access_token = create_access_token({"sub" : str(user.id)})
-    refresh_token = create_refresh_token({"sub" : str(user.id)})
-    response.set_cookie("vk_access_token", access_token, httponly=True)
-    response.set_cookie("vk_refresh_token", refresh_token, httponly=True)
-    return True
+    
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    
+    response.set_cookie(
+        "vk_access_token", 
+        access_token, 
+        httponly=True,
+        secure=True,
+        samesite="lax"
+    )
+    response.set_cookie(
+        "vk_refresh_token", 
+        refresh_token, 
+        httponly=True,
+        secure=True, 
+        samesite="lax"
+    )
+    
+    return {"message": "Login successful", "user_id": user.id}
 
 @router.post("/logout")
-async def logout(response : Response):
+async def logout(response : Response) -> bool:
     response.delete_cookie("vk_access_token")
     response.delete_cookie("vk_refresh_token")
     return True
 
 @router.post("/refresh")
-async def refresh_access_token(response : Response, user : User = Depends(refresh_user)):
+async def refresh_access_token(response : Response, user : User = Depends(refresh_user)) -> bool:
     access_token = create_access_token({"sub" : str(user.id)})
     response.set_cookie("vk_access_token", access_token, httponly=True)
     return True
