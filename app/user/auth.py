@@ -56,14 +56,14 @@ async def login(response : Response, user_data : SUserAuth):
     return {"message": "Login successful", "user_id": user.id}
 
 @router.post("/logout")
-async def logout(response : Response) -> bool:
+async def logout(response : Response):
     response.delete_cookie("vk_access_token")
     response.delete_cookie("vk_refresh_token")
     return {"message": "Logout successful"}
 
 @router.post("/refresh")
-async def refresh_access_token(response : Response, user : User = Depends(refresh_user)) -> bool:
-    access_token = create_access_token({"sub" : str(user.id)})
+async def refresh_access_token(response : Response, user : str = Depends(refresh_user)):
+    access_token = create_access_token({"sub" : user})
     response.set_cookie("vk_access_token", access_token, httponly=True)
     return {"message": "Refresh successful"}
 

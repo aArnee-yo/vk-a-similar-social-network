@@ -92,4 +92,4 @@ async def refresh_user(token : str = Depends(get_refresh_token)):
     if not user:
         raise userNotFound
     
-    return user
+    return user_id
