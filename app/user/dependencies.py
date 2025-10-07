@@ -6,6 +6,7 @@ from pydantic import EmailStr
 
 from app.config import settings
 from app.user.dao import UserDAO
+from app.HTTPExceptions import tokenAncorrect, tokenExpired, userNotFound
 
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -37,13 +38,13 @@ def create_refresh_token(data : dict, day : int = 60) -> str:
 def get_token(request : Request):
     token = request.cookies.get("vk_access_token")
     if not token:
-        raise
+        raise tokenAncorrect
     return token
 
 def get_refresh_token(request : Request):
     refresh = request.cookies.get("vk_refresh_token")
     if not refresh:
-        raise
+        raise tokenAncorrect
     return refresh
 
 
@@ -51,8 +52,9 @@ def get_refresh_token(request : Request):
 async def authenticate_user(email: EmailStr, password: str):
     user = await UserDAO.find_one_or_none(email=email)
     if not (user and verify_password(password, user.hashed_password)):
-        return None 
-    return user
+        return None
+    
+    return user 
 
 async def current_user(token : str = Depends(get_token)):
     try:
@@ -60,16 +62,16 @@ async def current_user(token : str = Depends(get_token)):
             token, settings.KEY, settings.ALGORITHM
         )
     except JWTError:
-        raise
+        raise tokenAncorrect
     expire : str = payload.get("exp")
     if not expire or int(expire)<datetime.datetime.utcnow().timestamp():
-        raise
+        raise tokenExpired
     user_id : str = payload.get("sub")
     if not user_id:
-        raise
+        raise userNotFound
     user = await UserDAO.find_by_id(int(user_id))
     if not user:
-        raise
+        raise userNotFound
     
     return user
 
@@ -79,15 +81,15 @@ async def refresh_user(token : str = Depends(get_refresh_token)):
             token, settings.REFRESH_KEY, settings.ALGORITHM
         )
     except JWTError:
-        raise
+        raise tokenAncorrect
     expire : str = payload.get("exp")
     if not expire or int(expire)<datetime.datetime.utcnow().timestamp():
-        raise
+        raise tokenExpired
     user_id : str = payload.get("sub")
     if not user_id:
-        raise
+        raise userNotFound
     user = await UserDAO.find_by_id(int(user_id))
     if not user:
-        raise
+        raise userNotFound
     
     return user

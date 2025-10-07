@@ -61,12 +61,14 @@ class PostDAO(BaseDAO):
                 .values(likes=cls.model.likes + 1)
                 .execution_options(synchronize_session="fetch")
             )
-            result = await session.execute(request)
-            await session.commit()
+            try:
+                result = await session.execute(request)
+                await session.commit()
+            except:
+                return False
             
             if result.rowcount == 0:
-                raise ValueError("Post not found")
-                
+                return False   
             return True
         
         

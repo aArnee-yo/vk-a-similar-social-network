@@ -25,8 +25,13 @@ class BaseDAO:
     async def add(cls, **data):
         async with async_session_maker() as session:
             request = insert(cls.model).values(**data)
-            await session.execute(request)
-            await session.commit()
+            try:
+                await session.execute(request)
+                await session.commit()
+            except Exception as e:
+                return False
+            finally:
+                return True
             
     @classmethod
     async def find_all(cls):

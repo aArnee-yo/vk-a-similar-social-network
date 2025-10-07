@@ -17,6 +17,10 @@ class CommentDAO(BaseDAO):
                 date=datetime.datetime.utcnow(),
                 content=data["content"]
             )
-            await session.execute(request)
-            await session.commit()
-            return True
+            try:
+                await session.execute(request)
+                await session.commit()
+            except Exception as e:
+                return False
+            finally:
+                return True
