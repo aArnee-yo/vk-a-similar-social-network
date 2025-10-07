@@ -18,11 +18,13 @@ class PostDAO(BaseDAO):
                 media=data.get("media"),
                 likes=0
             )
-            
-            await session.execute(request)
-            await session.commit()
-            
-            return True
+            try:
+                await session.execute(request)
+                await session.commit()
+            except Exception as e:
+                return False
+            finally:
+                return True
             
     
     @classmethod
@@ -64,7 +66,7 @@ class PostDAO(BaseDAO):
             try:
                 result = await session.execute(request)
                 await session.commit()
-            except:
+            except Exception as e:
                 return False
             
             if result.rowcount == 0:
