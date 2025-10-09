@@ -34,3 +34,8 @@ DBError = HTTPException(
     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
     detail="Ошибка в Базе Данных"
 )
+
+postNotFound = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="Пост не найден"
+)

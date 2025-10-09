@@ -1,9 +1,10 @@
 import datetime
 import uuid as uid
 from sqlalchemy import insert, select, desc, update
+from sqlalchemy.orm import selectinload
 from app.database.base_dao import BaseDAO
 from app.database.engine import async_session_maker
-from app.database.models import Post, User
+from app.database.models import Post, User, Comment
 
 class PostDAO(BaseDAO):
     model=Post
@@ -50,7 +51,12 @@ class PostDAO(BaseDAO):
     @classmethod
     async def find_by_id(cls, uuid : uid.UUID):
         async with async_session_maker() as session:
-            request = select(cls.model).where(cls.model.uuid==uuid)
+            request = select(cls.model).where(
+                cls.model.uuid == uuid
+            ).options(
+                selectinload(cls.model.owner),
+                selectinload(cls.model.comments).selectinload(Comment.owner)
+            )
             result = await session.execute(request)
             return result.scalar_one_or_none()
         

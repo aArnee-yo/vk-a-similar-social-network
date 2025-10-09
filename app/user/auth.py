@@ -26,6 +26,7 @@ async def register(user : SUserAuth) -> bool:
     response = await UserDAO.add(email=user.email, hashed_password=hashed_password)
     if not response:
         raise DBError
+    return True
 
 
 @router.post("/login")
