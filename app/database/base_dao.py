@@ -28,10 +28,10 @@ class BaseDAO:
             try:
                 await session.execute(request)
                 await session.commit()
-            except Exception as e:
-                return False
-            finally:
                 return True
+            except Exception as e:
+                await session.rollback()
+                return False
             
     @classmethod
     async def find_all(cls):

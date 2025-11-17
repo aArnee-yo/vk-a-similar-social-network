@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Network Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input, textarea, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .message { padding: 10px; margin: 5px 0; background: #e9ecef; border-radius: 4px; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d1edff; color: #155724; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Social Network Test Frontend</h1>
+        
+        <!-- Auth Section -->
+        <div class="section">
+            <h2>Authentication</h2>
+            <div>
+                <input type="email" id="email" placeholder="Email" value="test@example.com">
+                <input type="password" id="password" placeholder="Password" value="password123">
+                <button onclick="register()">Register</button>
+                <button onclick="login()">Login</button>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Posts Section -->
+        <div class="section">
+            <h2>Posts</h2>
+            <textarea id="postContent" placeholder="Post content"></textarea>
+            <button onclick="createPost()">Create Post</button>
+            <button onclick="getPosts()">Get All Posts</button>
+            <div id="posts"></div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="section">
+            <h2>Chat</h2>
+            <input type="number" id="receiverId" placeholder="Receiver ID">
+            <textarea id="messageContent" placeholder="Message"></textarea>
+            <button onclick="sendMessage()">Send Message</button>
+            <div id="messages"></div>
+        </div>
+
+        <!-- WebSocket Test -->
+        <div class="section">
+            <h2>WebSocket Test</h2>
+            <button onclick="connectWebSocket()">Connect WebSocket</button>
+            <button onclick="disconnectWebSocket()">Disconnect WebSocket</button>
+            <div id="wsStatus">Not connected</div>
+            <div id="wsMessages"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let ws = null;
+
+        // Utility functions
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                return await response.json();
+            } catch (error) {
+                showMessage('error', `API Error: ${error.message}`);
+            }
+        }
+
+        function showMessage(type, text) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            document.getElementById('messages').appendChild(div);
+        }
+
+        // Auth functions
+        async function register() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = await apiCall('/auth', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            if (result) showMessage('success', 'Registration successful');
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = await apiCall('/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            if (result) showMessage('success', 'Login successful');
+        }
+
+        async function logout() {
+            const result = await apiCall('/logout', { method: 'POST' });
+            if (result) showMessage('success', 'Logout successful');
+        }
+
+        // Post functions
+        async function createPost() {
+            const content = document.getElementById('postContent').value;
+            const result = await apiCall('/post/add', {
+                method: 'POST',
+                body: JSON.stringify({ content })
+            });
+            if (result) showMessage('success', 'Post created');
+        }
+
+        async function getPosts() {
+            const posts = await apiCall('/post/');
+            const postsDiv = document.getElementById('posts');
+            postsDiv.innerHTML = '';
+            posts.forEach(post => {
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.innerHTML = `<strong>${post.first_name}</strong>: ${post.content} <button onclick="likePost('${post.uuid}')">Like (${post.likes})</button>`;
+                postsDiv.appendChild(div);
+            });
+        }
+
+        async function likePost(uuid) {
+            const result = await apiCall(`/post/like?uuid=${uuid}`, { method: 'PATCH' });
+            if (result) {
+                showMessage('success', 'Post liked');
+                getPosts();
+            }
+        }
+
+        // Chat functions
+        async function sendMessage() {
+            const receiverId = document.getElementById('receiverId').value;
+            const content = document.getElementById('messageContent').value;
+            const result = await apiCall('/chat/send', {
+                method: 'POST',
+                body: JSON.stringify({ receiver_id: parseInt(receiverId), content })
+            });
+            if (result) showMessage('success', 'Message sent');
+        }
+
+        // WebSocket functions
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/api/websocket/');
+            
+            ws.onopen = () => {
+                document.getElementById('wsStatus').textContent = 'Connected';
+                showMessage('success', 'WebSocket connected');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                const wsMessages = document.getElementById('wsMessages');
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.textContent = `WebSocket: ${JSON.stringify(data)}`;
+                wsMessages.appendChild(div);
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('wsStatus').textContent = 'Disconnected';
+                showMessage('error', 'WebSocket disconnected');
+            };
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+    </script>
+</body>
+</html>

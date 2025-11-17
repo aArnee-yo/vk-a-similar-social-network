@@ -64,12 +64,12 @@ class Chat(Base):
     __tablename__ = "chats"
     
     id : Mapped[int] = mapped_column(primary_key=True)
-    from_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
-    to_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user1_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user2_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
     created : Mapped[dt.datetime] = mapped_column(default=dt.datetime.utcnow())
     
-    user1 : Mapped["User"] = relationship(foreign_keys=[from_id])
-    user2 : Mapped["User"] = relationship(foreign_keys=[to_id])
+    user1 : Mapped["User"] = relationship(foreign_keys=[user1_id])
+    user2 : Mapped["User"] = relationship(foreign_keys=[user2_id])
     messanges : Mapped[List["Messange"]] = relationship(back_populates="chat")
     
     
@@ -78,7 +78,7 @@ class Messange(Base):
     
     
     uuid : Mapped[uid.UUID] = mapped_column(UUID, primary_key=True, default=uid.uuid4(), unique=True)
-    chat : Mapped[int] = mapped_column(ForeignKey("chats.id"))
+    chat_id : Mapped[int] = mapped_column(ForeignKey("chats.id"))
     from_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
     content : Mapped[str] = mapped_column(Text, nullable=False)
     date : Mapped[dt.datetime] = mapped_column(default=dt.datetime.utcnow())
@@ -101,8 +101,8 @@ class User(Base):
     photo_link : Mapped[Optional[str]] = mapped_column()
     bio : Mapped[Optional[str]] = mapped_column()
     
-    chats_as_user1: Mapped[list["Chat"]] = relationship(foreign_keys=[Chat.from_id])
-    chats_as_user2: Mapped[list["Chat"]] = relationship(foreign_keys=[Chat.to_id])
+    chats_as_user1: Mapped[list["Chat"]] = relationship(foreign_keys=[Chat.user1_id])
+    chats_as_user2: Mapped[list["Chat"]] = relationship(foreign_keys=[Chat.user2_id])
     
     posts: Mapped[list["Post"]] = relationship(
         back_populates="owner",
